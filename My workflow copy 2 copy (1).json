@@ -1,0 +1,485 @@
+{
+  "name": "My workflow copy 2 copy",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a healthcare monitoring assistant.\n\nYour task is to generate a 24-hour tracking log of patient biomarker data in a table format (not JSON).\n\nTable Requirements\n\nGenerate a table with the following columns:\n\nTime – 12-hour format, every 30 minutes (48 rows total)\n\nBlood Pressure (mmHg)\n\nAsleep: 100–130 / 65–85\n\nAwake: 110–140 / 70–90\n\nSkin Temperature (°C)\n\nAsleep: 35.5–36.8\n\nAwake: 36.0–37.2\n\nOxygen Levels (%SpO₂) – Normally 94–99\n\nSleep State\n\n“Asleep” between 11:00 PM and 6:00 AM\n\n“Awake” otherwise\n\nValues must fluctuate slightly over time to look realistic.\n\nScenario Adjustments\n\nUse the provided scenario: {{ $json['Scenario'] }} to dynamically randomize vital signs so that they reflect realistic patterns associated with the listed conditions. For each instance, adjust the parameters according to both the baseline range and the medical condition, introducing slight random fluctuations to resemble real-time monitoring data.\n\nRules for adjustment:\n- **Hypertension**: Randomize systolic BP ↑ by 10–20 mmHg and diastolic ↑ by 5–10 mmHg (add small ±2–5 random fluctuation each instance).\n- **Hypotension**: Randomize systolic BP ↓ by 10–20 mmHg and diastolic ↓ by 5–10 mmHg (add small ±2–4 random fluctuation each instance).\n- **Hypoxemia**: Randomize SpO₂ between 88–93% (with ±1–2 variability across readings).\n- **Fever**: Randomize body temperature ↑ by 0.5–1.5°C above baseline (±0.2 variation).\n- **Arrhythmias**: Randomize heart rate patterns (e.g., HR spikes or irregular HR between 90–160 bpm with ±random fluctuation).\n- **Obesity / Metabolic Syndrome**: Keep vitals mostly normal but with higher baseline BP or HR variability.\n- **Sleep Apnea (mild/severe)**: Generate intermittent SpO₂ drops (2–4% variability at random intervals), HR fluctuations during drops.\n- **Asthma / COPD**: Randomize SpO₂ downward trends (90–95% with chance of dipping to 88–90%) plus increased respiratory rate (RR +2–6).\n- **Diabetes (complications / hypoglycemia)**: Introduce HR variability (tachycardia with hypoglycemia episodes), BG lower than baseline (±15–40 mg/dL), SpO₂ usually normal.\n- **Coronary / Heart Failure**: Combine elevated HR, slightly reduced SpO₂, fluid retention markers (weight +0.5–1 kg random), higher BP or sudden hypotension episodes.\n- **Epilepsy (if seizure event)**: Add HR spike, motion data anomaly, SpO₂ drop transiently.\n\nGeneral rule:\n- Always introduce ±2–5% random fluctuations per parameter per instance to simulate natural bodily variation and real-time streaming data.\n- Ensure values remain medically plausible for the indicated condition, not just random noise. \n\nOutput: For every generated data point, output vitals (HR, BP, SpO₂, RR, Temp, Weight if relevant) randomized as per rules above so that each scenario produces a lifelike time series rather than static values.\n\nOutput the data as a clean, human-readable table (not JSON, not code block).\n\nInclude 48 rows (every 30 minutes for 24 hours).\n\nFormat example (but with real values):\n\nTime\tBlood Pressure (mmHg)\tSkin Temp (°C)\tSpO₂ (%)\tSleep State\n12:00 AM\t118/76\t36.3\t97\tAsleep\n12:30 AM\t120/78\t36.2\t96\tAsleep\n01:00 AM\t119/77\t36.1\t96\tAsleep\n...\t...\t...\t...\t...\n\nDo not include explanations or JSON in the output — only the complete table.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -400,
+        -160
+      ],
+      "id": "d6fb3c16-0051-46af-b381-380f3633a7ce",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You will receive patient biomarker data (heart rate, blood pressure, SpO₂, temperature, respiratory rate, glucose if available, activity/sleep, timestamps, patient metadata) in {{ $json.output }}.\n\nTasks:\n\nAnalyze biomarker data:\n\nCheck each value against standard clinical thresholds (WHO, AHA, NICE, MedlinePlus).\n\nIdentify short-term trends (rising, falling, fluctuating).\n\nHighlight abnormal and worsening readings.\n\nCompare with clinical conditions (from provided tables):\n\nMatch real-time data to conditions using guidelines and peer-reviewed studies.\n\nIdentify and report top matched condition(s) explicitly.\n\nIf no authoritative match available, state: “Comparison step not completed – please validate with a clinician.”\n\nPredict deterioration risk (next 48h):\n\nProvide risk level: Low / Moderate / High.\n\nGive probability estimate if possible.\n\nReference key biomarkers and guidelines.\n\nGenerate personalized HTML5 email output (mobile-responsive, inline CSS):\n\nSubject: Personalized Health Risk Assessment – [Patient].\n\nSections: summary with timestamps and highlighted abnormalities; risk assessment; key biomarkers influencing prediction and condition match; actionable recommendations; doctor info and appointment options; medications; references.\n\nUse color/icons/arrows to highlight abnormalities.\n\nClearly state matched condition(s) with supporting evidence.\n\nTreatment & medication guidance:\n\nDisplay medications from input or state “No medications currently prescribed.”\n\nSuggest safe OTC actions if needed, with disclaimer: “This is not a prescription. Please confirm with your doctor.”\n\nSuggest appointment if risk is Moderate or High; highlight urgent actions if High.\n\nReferences:\n\nCite guideline sources used.\n\nIf none accessible, state: “Comparison step not completed – please validate with a clinician.”\n\nInstructions:You will receive patient biomarker data (heart rate, blood pressure, SpO₂, temperature, respiratory rate, glucose if available, activity/sleep, timestamps, patient metadata) in {{ $json.output }}.\n\nTasks:\n\nAnalyze biomarker data:\n\nCheck each value against standard clinical thresholds (WHO, AHA, NICE, MedlinePlus).\n\nIdentify short-term trends (e.g., rising, falling, fluctuating).\n\nHighlight abnormal and worsening readings in red or with an icon.\n\nCompare current values to guideline-based thresholds and note condition matches (with citations from guidelines).\n\nExplicitly list matched clinical conditions (e.g., “Hypertension Stage 1-2”, “Nocturnal Hypoxemia”) and cite sources.\n\nIf no match: “Comparison step not completed – please validate with a clinician.”\n\nRisk Prediction:\n\nPredict deterioration risk for the next 48 hours: output risk level (Low/Moderate/High), probability (%, if possible), and highlight the key biomarkers influencing the risk.\n\nProvide a risk summary in highlighted text (“Risk Level: Moderate” with color coding).\n\nReference the guideline sources used.\n\nGenerate mobile-responsive HTML5 output (inline CSS) for use as an email, using the following structure:\n\nxml\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Personalized Health Risk Assessment – [Patient]</title>\n  <style>\n    /* Inline mobile-responsive CSS as in the reference images: table styling, color highlights, font weights, icons for abnormal/normal, etc. */\n    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #FAFAFA; }\n    .container { max-width: 800px; margin: 0 auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 20px; }\n    h2 { color: #333; }\n    .risk-moderate { color: #ffae42; font-weight: bold; }\n    .risk-high { color: #dc2626; font-weight: bold; }\n    .risk-low { color: #1db954; font-weight: bold; }\n    .abnormal { color: #dc2626; font-weight: bold; }\n    .normal { color: #1db954; }\n    .section { margin-bottom: 24px; }\n    .icon-warning { color: #dc2626; font-weight: bold; margin-right: 6px;}\n    .icon-ok { color: #1db954; margin-right: 6px;}\n    .table { width: 100%; border-collapse: collapse; }\n    .table th, .table td { border-bottom: 1px solid #eee; padding: 8px 4px; text-align: left; }\n    .table th { background: #f5f5f5; }\n    .table tr:last-child td { border-bottom: none; }\n    .btn { display: inline-block; padding: 8px 24px; background: #1db954; color: #fff; border: none; border-radius: 4px; text-decoration: none; font-weight: bold; }\n    .reference-list { font-size: 0.92em; color: #6b7280; }\n    @media (max-width: 600px) {\n      .container { padding: 8px; }\n      .table th, .table td { font-size: 0.98em; }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <h2>Personalized Health Risk Assessment</h2>\n    <div class=\"section\">\n      <strong>Summary (Last Updated: [timestamp])</strong>\n      <table class=\"table\">\n        <tr>\n          <th>Time</th>\n          <th>Blood Pressure (mmHg)</th>\n          <th>Skin Temp (°C)</th>\n          <th>SpO₂ (%)</th>\n          <th>Sleep State</th>\n        </tr>\n        <!-- Insert rows of time-stamped patient data, with abnormal values in .abnormal class -->\n        <tr>\n          <td>12:00 AM</td>\n          <td class=\"abnormal\">135/90</td>\n          <td class=\"normal\">36.5</td>\n          <td class=\"abnormal\">92</td>\n          <td>Asleep</td>\n        </tr>\n        <!-- Repeat rows as needed -->\n      </table>\n    </div>\n    <div class=\"section\">\n      <strong>Risk Assessment</strong><br>\n      <span class=\"risk-moderate\">Risk Level: Moderate</span><br>\n      <strong>Estimated Probability of Deterioration (Next 48h):</strong> 60%<br>\n      <span>Elevated blood pressure readings are the primary concern. SpO₂ fluctuating near the lower end of the normal range requires monitoring.</span>\n    </div>\n    <div class=\"section\">\n      <strong>Key Biomarkers & Condition Match</strong><br>\n      <span><strong>Blood Pressure:</strong> Consistently elevated, indicating <span class=\"abnormal\">Hypertension Stage 1-2</span> (systolic > 140, diastolic > 90). (AHA Guidelines)</span><br>\n      <span><strong>SpO₂:</strong> Fluctuating around 90%, could indicate respiratory issue or compromised oxygen saturation (MedlinePlus)</span><br>\n      <span><strong>Matched Condition(s):</strong> <span class=\"abnormal\">Hypertension Stage 1-2</span> with potential for <span class=\"abnormal\">Nocturnal Hypoxemia</span></span>\n    </div>\n    <div class=\"section\">\n      <strong>Actionable Recommendations</strong>\n      <ul>\n        <li><strong> Lifestyle Modifications: </strong>Implement a low-sodium diet, increase physical activity, reduce stress.</li>\n        <li><strong> Blood Pressure Monitoring: </strong>Monitor BP regularly at home and record readings.</li>\n        <li><strong> SpO₂ Monitoring: </strong>Monitor SpO₂ regularly, especially during sleep.</li>\n      </ul>\n      <div style=\"color:#6b7280;\">\n        This is not a prescription. Please confirm with your doctor.\n      </div>\n    </div>\n    <div class=\"section\">\n      <strong>Doctor Information & Appointment Options</strong><br>\n      Primary Care Physician: Dr. Jane Smith<br>\n      Phone: (555) 123-4567<br>\n      <a href=\"#\" class=\"btn\">Schedule Appointment</a>\n    </div>\n    <div class=\"section\">\n      <strong>Medications</strong><br>\n      No medications currently prescribed.\n    </div>\n    <div class=\"section reference-list\">\n      <strong>References</strong>\n      <ul>\n        <li>American Heart Association (AHA) Guidelines on Hypertension</li>\n        <li>MedlinePlus: Oxygen Saturation</li>\n      </ul>\n    </div>\n  </div>\n</body>\n</html>\nInstructions:\n\nFill in each section using the real-time biomarker data and patient information.\n\nMatch and cite guidelines explicitly in the “Condition Match” and “References” areas.\n\nHighlight all abnormal or critical data (blood pressure, SpO₂, etc.) as shown.\n\nPresent actionable recommendations and doctor contact/appointment button.\n\nMedications: List if present; else, state “No medications currently prescribed.”\n\nIf no clinical match: “Comparison step not completed – please validate with a clinician.”\n\nRemove any explanatory/instructional and non-output text from the final HTML.\nBased on real-time biomarker data, compare values to the listed conditions and clearly identify which condition(s) best match the data in the report.\nprovide it in a HTML form\nremove the key improvements and explanations text and other unecessary texts that are not in the HTML code\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        256,
+        -160
+      ],
+      "id": "159d38aa-55c5-4bef-92ae-61167170025a",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "186Zxr4TPgbapmXf985aLJ-P0jb67RaNdzqXxjDMnzbU",
+          "mode": "list",
+          "cachedResultName": "hospital 2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/186Zxr4TPgbapmXf985aLJ-P0jb67RaNdzqXxjDMnzbU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1288911386,
+          "mode": "list",
+          "cachedResultName": "Real time ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/186Zxr4TPgbapmXf985aLJ-P0jb67RaNdzqXxjDMnzbU/edit#gid=1288911386"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "output",
+              "displayName": "output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -96,
+        -160
+      ],
+      "id": "d76967ac-14b2-48aa-99e1-43b8db728159",
+      "name": "real time data ",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2IIFLA5bG9wJzjOW",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "186Zxr4TPgbapmXf985aLJ-P0jb67RaNdzqXxjDMnzbU",
+          "mode": "list",
+          "cachedResultName": "hospital 2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/186Zxr4TPgbapmXf985aLJ-P0jb67RaNdzqXxjDMnzbU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2099741696,
+          "mode": "list",
+          "cachedResultName": "Annie",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/186Zxr4TPgbapmXf985aLJ-P0jb67RaNdzqXxjDMnzbU/edit#gid=2099741696"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Patient Name",
+              "displayName": "Patient Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Age",
+              "displayName": "Age",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Medical History",
+              "displayName": "Medical History",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Visited Time",
+              "displayName": "Visited Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Hospital Name",
+              "displayName": "Hospital Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Consulted Doctor",
+              "displayName": "Consulted Doctor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "output",
+              "displayName": "output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        -160
+      ],
+      "id": "0d14334d-cc8e-4df3-89a4-846191787dab",
+      "name": "existing ",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2IIFLA5bG9wJzjOW",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        272,
+        32
+      ],
+      "id": "27000ef7-785e-4483-8dfa-3833a4b2222e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "hrEBQupdA19uvlP8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        32
+      ],
+      "id": "64f2dfa1-bde5-4d1d-9b91-a34b48066096",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "hrEBQupdA19uvlP8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Test App",
+        "formDescription": "-Select the scenario you want to simulate-",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Scenario ",
+              "fieldType": "radio",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Regular "
+                  },
+                  {
+                    "option": "Mild"
+                  },
+                  {
+                    "option": "Severe"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -816,
+        -176
+      ],
+      "id": "5ff54365-804a-4aac-8375-5076c7666ca3",
+      "name": "On form submission",
+      "webhookId": "46137e44-5b56-4809-ab09-dc0d771c587b"
+    },
+    {
+      "parameters": {
+        "html": "{{ $json.output }}"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        608,
+        -160
+      ],
+      "id": "7f71f748-70e1-477b-98ac-9c91c4240e0d",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "sendTo": "aadiljm2007@gmail.com",
+        "subject": "CHECK YOUR STATUS NOW!!",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        816,
+        -160
+      ],
+      "id": "4950368e-3770-4a05-89ad-dca1f7e2a0b9",
+      "name": "Send a message",
+      "webhookId": "6e769598-8145-42a2-948a-4b5c4adfc0b3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "xZNPTjOwvkgjsdM0",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6fa45dfd-b1f2-4d47-992e-d101ae71a240",
+              "leftValue": "={{ $json['Scenario '] }}",
+              "rightValue": "Regular",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -624,
+        -176
+      ],
+      "id": "8c2ff1e6-f5b9-4634-bd0a-be0dcf9f08a4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "aadiljm2007@gmail.com",
+        "subject": "GOOD NEWS",
+        "message": "Your condition is normal and You are healthy",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -368,
+        -304
+      ],
+      "id": "b9a89485-aa50-4fd4-a4d4-58cc53f6562b",
+      "name": "Send a message1",
+      "webhookId": "96a818bb-89ee-4cbd-b953-aeb622a3e8ce",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "xZNPTjOwvkgjsdM0",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "real time data ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "real time data ": {
+      "main": [
+        [
+          {
+            "node": "existing ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "existing ": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "eb36ad48-399f-4322-908b-77e0a1eca960",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d6d80841051298785f151585653e54561b3572b95a19d8ec312a6497849065f3"
+  },
+  "id": "JHbJeWQv0gpIhtXG",
+  "tags": []
+}
